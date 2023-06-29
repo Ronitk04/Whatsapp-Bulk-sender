@@ -10,7 +10,7 @@ if (fs.existsSync(sessionPath)) {
 
 // Read the CSV file and sanitize the phone numbers
 const phoneNumbers = [];
-fs.createReadStream('test_indore_valid.csv')
+fs.createReadStream('numbers.csv')
   .pipe(csv())
   .on('data', (data) => {
     let phoneNumber = data['Phone Numbers']; // Assuming 'Phone Number' is the column header
@@ -31,27 +31,33 @@ fs.createReadStream('test_indore_valid.csv')
         // Create a function to check if a phone number is valid and send a message if valid
         const validateAndSendMessage = async (client, phoneNumber, messageText) => {
           return new Promise((resolve, reject) => {
-            setTimeout(async () => {
-              try {
-                const isValid = await client.checkNumberStatus(phoneNumber);
+            delay(Math.random() * 500 + 1000); // Random delay between 5000 and 150000 milliseconds
+            client.checkNumberStatus(phoneNumber)
+              .then((isValid) => {
                 if (isValid) {
-                  const response = await client.sendText(phoneNumber, messageText);
-                  console.log(`Message sent to ${phoneNumber}`);
-                  console.log(response);
-                  resolve(); // Resolve the promise after sending the message
+                  client.sendText(phoneNumber, messageText)
+                    .then((response) => {
+                      console.log(`Message sent to ${phoneNumber}`);
+                      console.log(response);
+                      resolve(); // Resolve the promise after sending the message
+                    })
+                    .catch((error) => {
+                      console.error(`Failed to send message to ${phoneNumber}:`, error);
+                      reject(error); // Reject the promise if there's an error
+                    });
                 } else {
                   console.log(`Phone number ${phoneNumber} is invalid. Skipping message send.`);
                   resolve(); // Resolve the promise without sending the message
                 }
-              } catch (error) {
-                console.error(`Failed to send message to ${phoneNumber}:`, error);
+              })
+              .catch((error) => {
+                console.error(`Failed to check number status for ${phoneNumber}:`, error);
                 reject(error); // Reject the promise if there's an error
-              }
-            }, Math.random() * 100000 + 5000); // Random interval between 5000 and 15000 milliseconds
+              });
           });
         };
 
-        const messageText = "Greetings from Survey Duniya.\nFill and earn.\nThis is freelance survey work, fill the survey carefully and get Rs. 40 sent on your upi id immediately.\nLocation: Indore\nhttps://docs.google.com/forms/d/e/1FAIpQLSeweKxwzrRKQrLXlJ7wsdGjL-FT-eFskDthM-xmGuwjV0Kdew/viewform"; // Update with your desired message
+        const messageText = "We are conducting an opinion poll for the Indore people; this is a paid survey in which you will be paid after the survey is done. If you are from Indore and interested to fill the survey and earn pls reply \nINTERESTED."; // Update with your desired message
 
         // Iterate over the phone numbers and validate/send messages with a random interval
         const promises = phoneNumbers.map(async (phoneNumber) => {
@@ -77,3 +83,12 @@ fs.createReadStream('test_indore_valid.csv')
         console.log(error);
       });
   });
+
+function delay(ms) {
+  const date = Date.now();
+  let currentDate = null;
+
+  while (currentDate - date < ms) {
+    currentDate = Date.now();
+  }
+}
